@@ -1,0 +1,76 @@
+{% extends 'cgpaapp/base.html' %}
+{% block title %}Semester Details{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <h1>{{ record.semester }}</h1>
+  <p>Full breakdown of courses for this semester</p>
+</div>
+
+<!-- Summary Cards -->
+<div style="display:grid; grid-template-columns: repeat(3,1fr); gap:16px; margin-bottom:30px;">
+  
+  <div class="card" style="text-align:center;">
+    <div style="font-size:32px; font-weight:600; color:var(--accent);">
+      {{ record.gpa }}
+    </div>
+    <div style="font-size:12px; color:var(--muted);">Semester GPA</div>
+  </div>
+
+  <div class="card" style="text-align:center;">
+    <div style="font-size:32px; font-weight:600;">
+      {{ record.total_units }}
+    </div>
+    <div style="font-size:12px; color:var(--muted);">Total Units</div>
+  </div>
+
+  <div class="card" style="text-align:center;">
+    <div style="font-size:32px; font-weight:600;">
+      {{ record.total_credit_point }}
+    </div>
+    <div style="font-size:12px; color:var(--muted);">Credit Points</div>
+  </div>
+
+</div>
+
+
+<!-- Courses Table -->
+<div class="card">
+
+  <h2 style="font-size:16px; margin-bottom:15px;">Courses Breakdown</h2>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>S/N</th>
+        <th>Course</th>
+        <th>Unit</th>
+        <th>Score</th>
+        <th>Grade</th>
+        <th>Credit Point</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for c in courses %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ c.name }}</td>
+        <td>{{ c.unit }}</td>
+        <td>{{ c.score }}</td>
+        <td>{{ c.grade }}</td>
+        <td>{{ c.credit_point }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+
+  </table>
+
+  <div style="margin-top:20px;">
+    <a href="{% url 'dashboard' %}" class="btn btn-outline">← Back to Dashboard</a>
+  </div>
+
+</div>
+
+{% endblock %}

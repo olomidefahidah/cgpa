@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}CGPA Calculator{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --border: #2e2e2e;
+      --accent: #c8f135;
+      --accent-dim: #a3c42a;
+      --text: #e8e8e8;
+      --muted: #888;
+      --danger: #ff5c5c;
+      --success: #4caf91;
+      --radius: 6px;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --font-sans: 'IBM Plex Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 32px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 100;
+    }
+    .nav-brand {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 17px;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+    .nav-links a { color: var(--muted); font-size: 14px; font-weight: 500; }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    /* ── LAYOUT ── */
+    .container { max-width: 860px; margin: 0 auto; padding: 48px 24px; }
+
+    /* ── MESSAGES ── */
+    .messages { list-style: none; margin-bottom: 24px; }
+    .messages li {
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      margin-bottom: 8px;
+      border-left: 3px solid;
+    }
+    .messages li.success { background: #1e2e22; border-color: var(--success); color: var(--success); }
+    .messages li.error   { background: #2e1e1e; border-color: var(--danger); color: var(--danger); }
+    .messages li.info    { background: #1e222e; border-color: #6699ff; color: #6699ff; }
+
+    /* ── FORMS ── */
+    .form-input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .form-input:focus { border-color: var(--accent); }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 500; letter-spacing: .3px; }
+    .form-errors { color: var(--danger); font-size: 12px; margin-top: 4px; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 22px;
+      border-radius: var(--radius);
+      font-family: var(--font-sans);
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; border: none;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--accent); color: #0f0f0f; }
+    .btn-primary:hover { opacity: .88; }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+    .btn-danger:hover { background: var(--danger); color: #fff; }
+    .btn-sm { padding: 6px 14px; font-size: 13px; }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px;
+    }
+
+    /* ── TABLE ── */
+    .table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .table th {
+      text-align: left; padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted); font-weight: 500;
+      font-size: 12px; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .table td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+    .table tr:last-child td { border-bottom: none; }
+    .table tr:hover td { background: #222; }
+
+    /* ── STAT CHIP ── */
+    .stat-chip {
+      display: inline-block;
+      background: #1e2710;
+      border: 1px solid #3a4f10;
+      color: var(--accent);
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header { margin-bottom: 36px; }
+    .page-header h1 {
+      font-size: 26px; font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+    .page-header p { color: var(--muted); margin-top: 6px; font-size: 14px; }
+
+    select.form-input { cursor: pointer; }
+
+    /* ── ALERT ── */
+    .alert {
+      padding: 12px 16px; border-radius: var(--radius);
+      font-size: 14px; margin-bottom: 20px;
+      border-left: 3px solid;
+    }
+    .alert-danger { background: #2e1e1e; border-color: var(--danger); color: var(--danger); }
+    .alert-success { background: #1e2e22; border-color: var(--success); color: var(--success); }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <nav>
+    <span class="nav-brand">cgpa/calc</span>
+    <div class="nav-links">
+      {% if user.is_authenticated %}
+        <a href="{% url 'dashboard' %}">Dashboard</a>
+        <a href="{% url 'calculate' %}">Calculate</a>
+        <a href="{% url 'logout' %}">Logout</a>
+      {% else %}
+        <a href="{% url 'login' %}">Login</a>
+        <a href="{% url 'register' %}">Register</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <div class="container">
+    {% if messages %}
+      <ul class="messages">
+        {% for msg in messages %}
+          <li class="{{ msg.tags }}">{{ msg }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

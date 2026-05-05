@@ -1,0 +1,102 @@
+{% extends 'cgpaapp/base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+  <div>
+    <h1>Dashboard</h1>
+    <p>Hello, {{ user.username }} — here's your academic overview</p>
+  </div>
+  <a href="{% url 'calculate' %}" class="btn btn-primary">+ New Semester</a>
+</div>
+
+<!-- Stats row -->
+<div style="display:grid; grid-template-columns: repeat(3,1fr); gap:16px; margin-bottom:36px;">
+  <div class="card" style="text-align:center;">
+    <div style="font-family:var(--font-mono); font-size:36px; font-weight:600; color:var(--accent);">
+      {{ cgpa }}
+    </div>
+    <div style="color:var(--muted); font-size:13px; margin-top:4px;">Cumulative CGPA</div>
+  </div>
+
+  <div class="card" style="text-align:center;">
+    <div style="font-family:var(--font-mono); font-size:36px; font-weight:600; color:var(--text);">
+      {{ total_semesters }}
+    </div>
+    <div style="color:var(--muted); font-size:13px; margin-top:4px;">Semesters recorded</div>
+  </div>
+
+  <div class="card" style="text-align:center;">
+    <div style="font-family:var(--font-mono); font-size:36px; font-weight:600; color:var(--text);">
+      {% if records %}{{ records.last.gpa }}{% else %}—{% endif %}
+    </div>
+    <div style="color:var(--muted); font-size:13px; margin-top:4px;">Last semester GPA</div>
+  </div>
+</div>
+
+<!-- Semester history -->
+<div class="card">
+  <h2 style="font-size:16px; font-weight:600; margin-bottom:20px;">
+    Semester History
+  </h2>
+
+  {% if records %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>S/N</th>
+          <th>Semester</th>
+          <th>GPA</th>
+          <th>Total Units</th>
+          <th>Credit Points</th>
+          <th>Date</th>
+          <th></th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for record in records %}
+        <tr>
+          <!-- S/N -->
+          <td>{{ forloop.counter }}</td>
+
+          <!-- Clickable semester -->
+          <td>
+            <a href="{% url 'semester_detail' record.pk %}"
+               style="color:var(--accent); font-weight:600; text-decoration:none;">
+              {{ record.semester }}
+            </a>
+          </td>
+
+          <td><span class="stat-chip">{{ record.gpa }}</span></td>
+          <td>{{ record.total_units }}</td>
+          <td>{{ record.total_credit_point }}</td>
+          <td style="color:var(--muted); font-size:13px;">
+            {{ record.created_at }}
+          </td>
+
+          <td>
+            <form method="post"
+                  action="{% url 'delete_record' record.pk %}"
+                  onsubmit="return confirm('Delete this record?');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger btn-sm">
+                Delete
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  {% else %}
+    <div style="text-align:center; padding:40px; color:var(--muted);">
+      <p style="margin-bottom:16px;">No semester records yet.</p>
+      <a href="{% url 'calculate' %}" class="btn btn-primary">
+        Calculate your first semester
+      </a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

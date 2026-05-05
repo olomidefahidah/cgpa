@@ -1,0 +1,254 @@
+{% extends 'cgpaapp/base.html' %}
+{% block title %}Calculate GPA{% endblock %}
+
+{% block extra_head %}
+<style>
+  .course-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 90px 90px 110px 36px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .course-row input, .course-row select {
+    margin-bottom: 0;
+  }
+
+  .sn-box {
+    text-align: center;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .remove-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: var(--radius);
+    cursor: pointer;
+    width: 36px;
+    height: 38px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .remove-btn:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+
+  .col-headers {
+    display: grid;
+    grid-template-columns: 40px 1fr 90px 90px 110px 36px;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .col-headers span {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 700px;">
+  <div class="page-header">
+    <h1>Calculate GPA</h1>
+    <p>Enter all courses for a semester to compute your GPA and update your CGPA</p>
+  </div>
+
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
+  <div id="unit-error" style="color:red; font-size:13px;"></div>
+  <div id="unit-progress" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
+
+  {% if result %}
+  <div class="card" style="margin-bottom:32px;">
+    <h2>Results — {{ result.semester }}</h2>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>S/N</th>
+          <th>Course</th>
+          <th>Units</th>
+          <th>Score</th>
+          <th>Grade</th>
+          <th>Credit Points</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in result.courses %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ c.name }}</td>
+          <td>{{ c.unit }}</td>
+          <td>{{ c.score }}</td>
+          <td>{{ c.grade }}</td>
+          <td>{{ c.credit_point }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <p><strong>GPA:</strong> {{ result.gpa }}</p>
+    <p><strong>CGPA:</strong> {{ result.cgpa }}</p>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <form method="post" id="cgpa-form">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label>Semester</label>
+        <input type="text" name="semester" class="form-input" required>
+      </div>
+
+      <div class="col-headers">
+        <span>S/N</span>
+        <span>Course</span>
+        <span>Units</span>
+        <span>Score</span>
+        <span>Grade</span>
+        <span></span>
+      </div>
+
+      <div id="courses-container"></div>
+
+      <button type="button" id="add-course" class="btn btn-outline">
+        + Add Course
+      </button>
+
+      <button type="submit" class="btn btn-primary" style="width:100%; margin-top:15px;">
+        Calculate & Save
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+let rowCount = 0;
+
+/* SCORE → GRADE */
+function getGrade(score) {
+    if (score >= 70) return "A";
+    if (score >= 60) return "B";
+    if (score >= 50) return "C";
+    if (score >= 45) return "D";
+    if (score >= 40) return "E";
+    return "F";
+}
+
+/* REINDEX S/N */
+function updateSN() {
+    document.querySelectorAll(".sn-box").forEach((el, index) => {
+        el.textContent = index + 1;
+    });
+}
+
+/* UNITS TOTAL */
+function getTotalUnits() {
+    let total = 0;
+
+    document.querySelectorAll("input[name='unit']").forEach(input => {
+        let val = parseFloat(input.value);
+        if (!isNaN(val)) total += val;
+    });
+
+    return total;
+}
+
+/* VALIDATE UNITS */
+function checkUnitsLimit() {
+    const errorBox = document.getElementById("unit-error");
+    const progressBox = document.getElementById("unit-progress");
+    const total = getTotalUnits();
+
+    progressBox.textContent = `Current Units: ${total} / 15–24`;
+
+    if (total > 0 && total < 15) {
+        errorBox.textContent = "Minimum 15 units required";
+        return false;
+    }
+
+    if (total > 24) {
+        errorBox.textContent = "Maximum 24 units allowed";
+        return false;
+    }
+
+    errorBox.textContent = "";
+    return true;
+}
+
+/* UPDATE GRADE */
+function updateGrade(input) {
+    const row = input.closest(".course-row");
+    const box = row.querySelector(".grade-box");
+
+    let score = parseFloat(input.value);
+    box.textContent = isNaN(score) ? "-" : getGrade(score);
+}
+
+/* CREATE ROW */
+function makeRow() {
+    const div = document.createElement("div");
+    div.className = "course-row";
+
+    div.innerHTML = `
+    <div class="sn-box"></div>
+
+    <input type="text" name="course_name[]" class="form-input" required>
+
+    <input type="number" name="unit[]" class="form-input" min="1" max="6"
+           oninput="checkUnitsLimit()" required>
+
+    <input type="number" name="score[]" class="form-input"
+           min="0" max="100"
+           oninput="updateGrade(this)"
+           required>
+
+        <div class="grade-box">-</div>
+
+        <button type="button" class="remove-btn"
+            onclick="this.closest('.course-row').remove(); updateSN(); checkUnitsLimit();">×</button>
+    `;
+
+    return div;
+}
+
+/* ADD ROW */
+function addRow() {
+    document.getElementById("courses-container").appendChild(makeRow());
+    updateSN();
+}
+
+/* INITIAL ROWS */
+addRow();
+addRow();
+addRow();
+
+/* ADD BUTTON */
+document.getElementById("add-course").addEventListener("click", addRow);
+
+/* SUBMIT VALIDATION */
+document.getElementById("cgpa-form").addEventListener("submit", function(e) {
+    if (!checkUnitsLimit()) e.preventDefault();
+});
+
+/* LIVE VALIDATION */
+document.addEventListener("input", function(e) {
+    if (e.target.name === "unit") {
+        checkUnitsLimit();
+    }
+});
+</script>
+{% endblock %}
